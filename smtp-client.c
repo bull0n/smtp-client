@@ -1,3 +1,9 @@
+// DEV : YOANN LEHMANN, LUCAS BULLONI
+// PROGRAM : SIMPLE SMTP CLIENT
+// DATE : MAY/JUNE 2017
+// DESCRIPTION : Send an email through smtp with all the details in the command parameters
+// SOURCES : TCP part from Marc Schaefer : https://ssl.horus.ch/~schaefer/bin/view/HEArc/ReseauxINF1ProgrammationSocketTCPCorrige
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -21,12 +27,18 @@ int main(int argc, char **argv) {
   if (argc > 5) {
     FILE *f;
 
+
+    //Infos for mails
     char* from = argv[1];
     char* subject = argv[2];
     char* filename = argv[3];
-    char* mailServer = argv[4];
     char* to = argv[5];
+    //Infos to send to the server
+    char* ipAddr;
+    //Infos to connect to the server
+    char* mailServer = argv[4];
     char* portNum;
+
 
     if(argc > 6) {
       portNum = argv[6];
@@ -36,18 +48,55 @@ int main(int argc, char **argv) {
     }
 
     if ((f = tcp_connect(mailServer, portNum))) {
-      /* STUDENT_START */
       char buffer[1024];
 
-      /* we are a bit lax on error checking from now on */
-      /* most Virtual Terminal (VT) line-oriented protocols use
-      * the old CRLF end of line sequence (instead of UNIX LF)
-      */
-      //fprintf(f, "GET / HTTP/1.1\r\nHost: %s\r\n\r\n", argv[1]);
-      fflush(f);
+      /* nothing to send anymore  MOVING IT AT THE END*/
+      //shutdown(fileno(f), SHUT_WR);
 
-      /* nothing to send anymore */
-      shutdown(fileno(f), SHUT_WR);
+      //get the first reply of the server
+      fgets(buffer, sizeof(buffer), f);
+
+
+      //check if the server accept the connection
+      if(buffer[0] == '2') {
+        /*Start the sending email process*/
+        // Number of the step
+        // 0 = HELO
+        // 1 = MAIL FROM
+        // 2 = RCPT TO
+        // 3 = DATA
+        // 4 = QUIT
+        int step = 0;
+
+        for(step = 0; step < 5; i++) {
+          switch(step) {
+            case 0:
+            fprintf(f, "HELO %s\r\n", ipaddr);
+            break;
+            case 1:
+            fputs("HELO \r\n", f);
+            break;
+            case 2:
+            fputs("HELO \r\n", f);
+            break;
+            case 3:
+            fputs("HELO \r\n", f);
+            break;
+            case 4:
+            fputs("QUIT\r\n", f);
+            break;
+            default:
+
+          }
+          fflush(f);
+          fgets(buffer, sizeof(buffer), f);
+        }
+      }
+      else {
+
+      }
+
+
 
       /* retrieving answer from HTTP server */
       while (fgets(buffer, sizeof(buffer), f)) {

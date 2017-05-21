@@ -1,0 +1,9 @@
+===============
+ENVOIE D'EMAIL TEST
+===============
+./smtp-client "lucas.bulloni@he-arc.ch" "Salut" text.txt "localhost" "lu.bulloni@gmail.com" 14020
+
+===============
+SIMULATION SERVER
+===============
+nc -l -p 14020
