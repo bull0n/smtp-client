@@ -18,6 +18,7 @@
 
 /* Private function definition */
 static FILE *tcp_connect(const char *hostname, const char *port);
+char manageError(const char* serverMessage);
 
 /* Public function implementation */
 
@@ -34,68 +35,75 @@ int main(int argc, char **argv) {
     char* filename = argv[3];
     char* to = argv[5];
     //Infos to send to the server
-    char* ipAddr;
+    char* ipAddr = "192.168.1.1";
     //Infos to connect to the server
     char* mailServer = argv[4];
-    char* portNum;
+    char* portNum = "25";
 
 
     if(argc > 6) {
       portNum = argv[6];
     }
-    else {
-      portNum = "25";
-    }
 
     if ((f = tcp_connect(mailServer, portNum))) {
       char buffer[1024];
 
-      /* nothing to send anymore  MOVING IT AT THE END*/
-      //shutdown(fileno(f), SHUT_WR);
-
-      //get the first reply of the server
-      fgets(buffer, sizeof(buffer), f);
-
-
-      //check if the server accept the connection
-      if(buffer[0] == '2') {
-        /*Start the sending email process*/
-        // Number of the step
-        // 0 = HELO
-        // 1 = MAIL FROM
-        // 2 = RCPT TO
-        // 3 = DATA
-        // 4 = QUIT
-        int step = 0;
-
-        for(step = 0; step < 5; i++) {
-          switch(step) {
-            case 0:
-            fprintf(f, "HELO %s\r\n", ipaddr);
+      /*Start the sending email process*/
+      // Number of the step
+      // 0 = HELO
+      // 1 = MAIL FROM
+      // 2 = RCPT TO
+      // 3 = DATA
+      // 4 = DATA TO SEND
+      // 5 = QUIT
+      int step;
+      for(step = 0; step < 6; step++) {
+        fflush(f);
+        fgets(buffer, sizeof(buffer), f);
+        if(buffer[0] == '2' || buffer[0] == '3') {
+          //if et pas de switch pour déclarer des variables
+          if(step == 0) {
+            fprintf(f, "HELO %s\r\n", ipAddr);
+          }
+          else if(step == 1) {
+            fprintf(f,"MAIL FROM: <%s>\r\n", from);
+          }
+          else if (step == 2){
+            fprintf(f,"RCPT TO: <%s>\r\n", to);
+          }
+          else if (step == 3){
+            fprintf(f,"DATA\r\n");
+          }
+          else if (step == 4){
+            char* content;
+            FILE * contentFile = fopen(filename, "r");
+            fseek (contentFile, 0, SEEK_END);
+            long length = ftell (f);
+            fseek (contentFile, 0, SEEK_SET);
+            content = malloc (length);
+            if (content) {
+              fread (content, 1, length, f);
+            }
+            fclose (f);
+            fprintf(f,"Subject: %s\nFrom: <%s>\nTo: %s\n%s\r\n.\n\r", subject, from, to, content);
+            free(content);
+          }
+          else if (step == 5){
+            fprintf(f,"QUIT\r\n");
+          }
+        }
+        else {
+          int typeError = manageError(buffer);
+          // server error
+          if(typeError == 5) {
             break;
-            case 1:
-            fputs("HELO \r\n", f);
-            break;
-            case 2:
-            fputs("HELO \r\n", f);
-            break;
-            case 3:
-            fputs("HELO \r\n", f);
-            break;
-            case 4:
-            fputs("QUIT\r\n", f);
-            break;
-            default:
+          }
+          // grey listing
+          else if(typeError == 4) {
 
           }
-          fflush(f);
-          fgets(buffer, sizeof(buffer), f);
         }
       }
-      else {
-
-      }
-
 
 
       /* retrieving answer from HTTP server */
@@ -128,6 +136,10 @@ int main(int argc, char **argv) {
   }
 
   return result;
+}
+
+char manageError(const char* serverMessage) {
+  return 0;
 }
 
 static FILE *tcp_connect(const char *hostname, const char *port) {
