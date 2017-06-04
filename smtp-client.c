@@ -28,14 +28,13 @@ int main(int argc, char **argv) {
   if (argc > 5) {
     FILE *f;
 
-
     //Infos for mails
     char* from = argv[1];
     char* subject = argv[2];
     char* filename = argv[3];
     char* to = argv[5];
     //Infos to send to the server
-    char* ipAddr = "192.168.1.1";
+    char* HELO = "192.168.1.1";
     //Infos to connect to the server
     char* mailServer = argv[4];
     char* portNum = "25";
@@ -60,10 +59,11 @@ int main(int argc, char **argv) {
       for(step = 0; step < 6; step++) {
         fflush(f);
         fgets(buffer, sizeof(buffer), f);
+        puts(buffer);
         if(buffer[0] == '2' || buffer[0] == '3') {
           //if et pas de switch pour déclarer des variables
           if(step == 0) {
-            fprintf(f, "HELO %s\r\n", ipAddr);
+            fprintf(f, "HELO %s\r\n", HELO);
           }
           else if(step == 1) {
             fprintf(f,"MAIL FROM: <%s>\r\n", from);
@@ -93,13 +93,14 @@ int main(int argc, char **argv) {
           }
         }
         else {
-          int typeError = manageError(buffer);
+          char typeError = manageError(buffer);
           // server error
-          if(typeError == 5) {
+          if(typeError == '5') {
+            puts("error 5XX");
             break;
           }
           // grey listing
-          else if(typeError == 4) {
+          else if(typeError == '4') {
 
           }
         }
@@ -107,39 +108,39 @@ int main(int argc, char **argv) {
 
 
       /* retrieving answer from HTTP server */
-      while (fgets(buffer, sizeof(buffer), f)) {
-        if (strlen(buffer) > 0) {
-          /* filter out \n */
-          buffer[strlen(buffer) - 1] = '\0';
-        }
-        puts(buffer);
-      }
-
-      if (fclose(f) == 0) {
-        /* this also closes the underlying socket and thus
-        * drops the connection
-        */
-        f = NULL;
-
-        result = EXIT_SUCCESS;
-      }
-      else {
-        perror("fclose(): failed: ");
-      }
-      /* STUDENT_END */
+      /*while (fgets(buffer, sizeof(buffer), f)) {
+      if (strlen(buffer) > 0) {
+      //filter out \n
+      buffer[strlen(buffer) - 1] = '\0';
     }
-    /* else: failure */
+    puts(buffer);
+  }*/
+
+  if (fclose(f) == 0) {
+    /* this also closes the underlying socket and thus
+    * drops the connection
+    */
+    f = NULL;
+
+    result = EXIT_SUCCESS;
   }
   else {
-    fprintf(stderr, "%s remote-host port\n", argv[0]);
-    fprintf(stderr, "%s: bad args.\n", argv[0]);
+    perror("fclose(): failed: ");
   }
+  /* STUDENT_END */
+}
+/* else: failure */
+}
+else {
+  fprintf(stderr, "%s remote-host port\n", argv[0]);
+  fprintf(stderr, "%s: bad args.\n", argv[0]);
+}
 
-  return result;
+return result;
 }
 
 char manageError(const char* serverMessage) {
-  return 0;
+  return '5';
 }
 
 static FILE *tcp_connect(const char *hostname, const char *port) {
