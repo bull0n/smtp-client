@@ -1,9 +1,18 @@
 ===============
 ENVOIE D'EMAIL TEST
 ===============
-./smtp-client "lucas.bulloni@he-arc.ch" "Salut" text.txt "localhost" "lu.bulloni@gmail.com" 14020
+./smtp-client "lucas.bulloni@he-arc.ch" "Salut" content.txt "localhost" "lu.bulloni@gmail.com" 14020
 
 ===============
 SIMULATION SERVER
 ===============
 nc -l -p 14020
+
+===============
+SMTP SERVER RESPONSE
+===============
+220 smtpapp1.he-arc.ch ESMTP SMTP Applicatif HE-ARC
+250 smtpapp1.he-arc.ch
+250 2.1.0 Ok
+250 2.1.5 Ok
+354 End data with <CR><LF>.<CR><LF>

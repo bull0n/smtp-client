@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <netdb.h>
+#include <time.h>
+#include <time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -19,6 +21,7 @@
 /* Private function definition */
 static FILE *tcp_connect(const char *hostname, const char *port);
 char manageError(const char* serverMessage);
+void processGreyListing(int waitingTime);
 
 /* Public function implementation */
 
@@ -55,6 +58,7 @@ int main(int argc, char **argv) {
       // 3 = DATA
       // 4 = DATA TO SEND
       // 5 = QUIT
+      // 6 = check disconnection message
       int step;
       for(step = 0; step < 6; step++) {
         fflush(f);
@@ -78,25 +82,29 @@ int main(int argc, char **argv) {
             char* content;
             FILE * contentFile = fopen(filename, "r");
             fseek (contentFile, 0, SEEK_END);
-            long length = ftell (f);
+            long length = ftell (contentFile);
             fseek (contentFile, 0, SEEK_SET);
             content = malloc (length);
             if (content) {
-              fread (content, 1, length, f);
+              fread (content, 1, length, contentFile);
             }
-            fclose (f);
+            fclose (contentFile);
             fprintf(f,"Subject: %s\nFrom: <%s>\nTo: %s\n%s\r\n.\n\r", subject, from, to, content);
             free(content);
+            printf("%s", content);
           }
           else if (step == 5){
             fprintf(f,"QUIT\r\n");
+          }
+          // pas sûr que cette étape soit nécessaire
+          else if (step == 6){
+            puts("email sent");
           }
         }
         else {
           char typeError = manageError(buffer);
           // server error
           if(typeError == '5') {
-            puts("error 5XX");
             break;
           }
           // grey listing
@@ -106,42 +114,53 @@ int main(int argc, char **argv) {
         }
       }
 
-
-      /* retrieving answer from HTTP server */
-      /*while (fgets(buffer, sizeof(buffer), f)) {
-      if (strlen(buffer) > 0) {
-      //filter out \n
-      buffer[strlen(buffer) - 1] = '\0';
+      if (fclose(f) == 0) {
+        /* this also closes the underlying socket and thus
+        * drops the connection
+        */
+        f = NULL;
+        result = EXIT_SUCCESS;
+      }
+      else {
+        perror("fclose(): failed: ");
+      }
+      /* STUDENT_END */
     }
-    puts(buffer);
-  }*/
-
-  if (fclose(f) == 0) {
-    /* this also closes the underlying socket and thus
-    * drops the connection
-    */
-    f = NULL;
-
+    /* else: failure */
     result = EXIT_SUCCESS;
   }
   else {
-    perror("fclose(): failed: ");
+    fprintf(stderr, "from subject content-file host to [port]\n");
+    fprintf(stderr, "%s: bad args.\n", argv[0]);
   }
-  /* STUDENT_END */
-}
-/* else: failure */
-}
-else {
-  fprintf(stderr, "%s remote-host port\n", argv[0]);
-  fprintf(stderr, "%s: bad args.\n", argv[0]);
-}
 
-return result;
+  return result;
 }
 
 char manageError(const char* serverMessage) {
-  return '5';
+  if(serverMessage[0] == '4') {
+    time_t curentTime;
+    char* timeString;
+    curentTime = time(NULL);
+    int waitingTime = 30;
+    // Convert to local time format.
+    timeString = ctime(&curentTime);
+    //french wikipedia says we have to wait 15-30mins before continuing, english says 25. We'll wait 30 to be sure min*sec*microseconds
+    printf("Greylisting (wait %dmins - from : %s)...\n", waitingTime, timeString);
+    processGreyListing(waitingTime);
+  }
+  else if(serverMessage[0]) {
+    puts("Server error, aborting process");
+  }
+  return serverMessage[0];
 }
+
+void processGreyListing(int waitingTime) {
+
+  usleep(waitingTime*60*1000000);
+  puts("finished waiting");
+}
+
 
 static FILE *tcp_connect(const char *hostname, const char *port) {
   FILE *f = NULL;
