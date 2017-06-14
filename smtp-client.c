@@ -10,7 +10,7 @@
 #include <string.h>
 #include <netdb.h>
 #include <time.h>
-#include <time.h>
+#include <regex.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -20,8 +20,9 @@
 
 /* Private function definition */
 static FILE *tcp_connect(const char *hostname, const char *port);
-char manageError(const char* serverMessage);
+char manageError(const char serverError);
 void processGreyListing(int waitingTime);
+int sendMail(char* from, char* to, char* subject, char* filename, char* mailServer, char* portNum);
 
 /* Public function implementation */
 
@@ -29,15 +30,11 @@ int main(int argc, char **argv) {
   int result = EXIT_FAILURE;
 
   if (argc > 5) {
-    FILE *f;
-
     //Infos for mails
     char* from = argv[1];
     char* subject = argv[2];
     char* filename = argv[3];
     char* to = argv[5];
-    //Infos to send to the server
-    char* HELO = "192.168.1.1";
     //Infos to connect to the server
     char* mailServer = argv[4];
     char* portNum = "25";
@@ -47,87 +44,9 @@ int main(int argc, char **argv) {
       portNum = argv[6];
     }
 
-    if ((f = tcp_connect(mailServer, portNum))) {
-      char buffer[1024];
+    result = sendMail(from, to, subject, filename, mailServer, portNum);
 
-      /*Start the sending email process*/
-      // Number of the step
-      // 0 = HELO
-      // 1 = MAIL FROM
-      // 2 = RCPT TO
-      // 3 = DATA
-      // 4 = DATA TO SEND
-      // 5 = QUIT
-      // 6 = check disconnection message
-      int step;
-      for(step = 0; step < 6; step++) {
-        fflush(f);
-        fgets(buffer, sizeof(buffer), f);
-        puts(buffer);
-        if(buffer[0] == '2' || buffer[0] == '3') {
-          //if et pas de switch pour déclarer des variables
-          if(step == 0) {
-            fprintf(f, "HELO %s\r\n", HELO);
-          }
-          else if(step == 1) {
-            fprintf(f,"MAIL FROM: <%s>\r\n", from);
-          }
-          else if (step == 2){
-            fprintf(f,"RCPT TO: <%s>\r\n", to);
-          }
-          else if (step == 3){
-            fprintf(f,"DATA\r\n");
-          }
-          else if (step == 4){
-            char* content;
-            FILE * contentFile = fopen(filename, "r");
-            fseek (contentFile, 0, SEEK_END);
-            long length = ftell (contentFile);
-            fseek (contentFile, 0, SEEK_SET);
-            content = malloc (length);
-            if (content) {
-              fread (content, 1, length, contentFile);
-            }
-            fclose (contentFile);
-            fprintf(f,"Subject: %s\nFrom: <%s>\nTo: %s\n%s\r\n.\n\r", subject, from, to, content);
-            free(content);
-            printf("%s", content);
-          }
-          else if (step == 5){
-            fprintf(f,"QUIT\r\n");
-          }
-          // pas sûr que cette étape soit nécessaire
-          else if (step == 6){
-            puts("email sent");
-          }
-        }
-        else {
-          char typeError = manageError(buffer);
-          // server error
-          if(typeError == '5') {
-            break;
-          }
-          // grey listing
-          else if(typeError == '4') {
 
-          }
-        }
-      }
-
-      if (fclose(f) == 0) {
-        /* this also closes the underlying socket and thus
-        * drops the connection
-        */
-        f = NULL;
-        result = EXIT_SUCCESS;
-      }
-      else {
-        perror("fclose(): failed: ");
-      }
-      /* STUDENT_END */
-    }
-    /* else: failure */
-    result = EXIT_SUCCESS;
   }
   else {
     fprintf(stderr, "from subject content-file host to [port]\n");
@@ -137,28 +56,123 @@ int main(int argc, char **argv) {
   return result;
 }
 
-char manageError(const char* serverMessage) {
-  if(serverMessage[0] == '4') {
+char manageError(const char serverError) {
+  if(serverError == '4') {
     time_t curentTime;
     char* timeString;
     curentTime = time(NULL);
-    int waitingTime = 30;
+    int waitingTime = 2;
     // Convert to local time format.
     timeString = ctime(&curentTime);
     //french wikipedia says we have to wait 15-30mins before continuing, english says 25. We'll wait 30 to be sure min*sec*microseconds
     printf("Greylisting (wait %dmins - from : %s)...\n", waitingTime, timeString);
     processGreyListing(waitingTime);
   }
-  else if(serverMessage[0]) {
+  else if(serverError) {
     puts("Server error, aborting process");
+    exit(-1);
   }
-  return serverMessage[0];
+  return serverError;
 }
 
 void processGreyListing(int waitingTime) {
 
   usleep(waitingTime*60*1000000);
   puts("finished waiting");
+}
+
+int sendMail(char* from, char* to, char* subject, char* filename, char* mailServer, char* portNum) {
+  FILE *f;
+  int result;
+  char error = 0;
+  //Infos to send to the server
+  char* HELO = "INF16-BULLONIL";
+  if ((f = tcp_connect(mailServer, portNum))) {
+
+    /*Start the sending email process*/
+    // Number of the step
+    // 0 = HELO
+    // 1 = MAIL FROM
+    // 2 = RCPT TO
+    // 3 = DATA
+    // 4 = DATA TO SEND
+    // 5 = QUIT
+    // 6 = check disconnection message
+    int step;
+    //amélioration : regex + annulé les step et faire une do while
+    for(step = 0; step < 6; step++) {
+      char buffer[1024];
+      fflush(f);
+      fgets(buffer, sizeof(buffer), f);
+      puts(buffer);
+      if(buffer[0] == '2' || buffer[0] == '3') {
+        //if et pas de switch pour déclarer des variables
+        if(step == 0) {
+          fprintf(f, "HELO %s\r\n", HELO);
+          puts("HELO sent");
+        }
+        else if(step == 1) {
+          fprintf(f,"MAIL FROM: <%s>\r\n", from);
+          puts("MAIL FROM sent");
+        }
+        else if (step == 2){
+          fprintf(f,"RCPT TO: <%s>\r\n", to);
+          puts("RCPT TO sent");
+        }
+        else if (step == 3){
+          fprintf(f,"DATA\r\n");
+          puts("DATA sent");
+        }
+        else if (step == 4){
+          char* content;
+          FILE * contentFile = fopen(filename, "r");
+          fseek (contentFile, 0, SEEK_END);
+          long length = ftell (contentFile);
+          fseek (contentFile, 0, SEEK_SET);
+          content = malloc(length);
+          if (content) {
+            fread (content, 1, length, contentFile);
+          }
+          fclose (contentFile);
+          fprintf(f,"Subject: %s\r\nFrom: <%s>\r\nTo: %s\r\n\r\n%s\r\n\r\n.\n\r", subject, from, to, content);
+          free(content);
+          printf("%s", content);
+          puts("DATA sent");
+        }
+        else if (step == 5){
+          fprintf(f,"QUIT\r\n");
+          puts("QUIT sent");
+        }
+        // pas sûr que cette étape soit nécessaire
+        else if (step == 6){
+          puts("email sent");
+        }
+      }
+      else {
+        error = buffer[0];
+        //result = FAILURE;
+        break;
+      }
+    }
+
+    if (fclose(f) == 0) {
+      /* this also closes the underlying socket and thus
+      * drops the connection
+      */
+      f = NULL;
+      result = EXIT_SUCCESS;
+    }
+    else {
+      perror("fclose(): failed: ");
+    }
+    /* STUDENT_END */
+  }
+  manageError(error);
+  if(error == '4') {
+    sendMail(from, to, subject, filename, mailServer, portNum);
+  }
+
+  return result;
 }
 
 

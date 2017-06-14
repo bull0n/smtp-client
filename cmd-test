@@ -2,6 +2,8 @@
 ENVOIE D'EMAIL TEST
 ===============
 ./smtp-client "lucas.bulloni@he-arc.ch" "Salut" content.txt "localhost" "lu.bulloni@gmail.com" 14020
+./smtp-client "lu.bulloni@gmail.com" "Salut" content.txt "smtprel.he-arc.ch" "lucas.bulloni@he-arc.ch"
+./smtp-client "lucas.bulloni@he-arc.ch" "Salut" content.txt "smtp.alphanet.ch" "schaefer@alphanet.ch"
 
 ===============
 SIMULATION SERVER
@@ -16,3 +18,5 @@ SMTP SERVER RESPONSE
 250 2.1.0 Ok
 250 2.1.5 Ok
 354 End data with <CR><LF>.<CR><LF>
+250 2.0.0 Ok: queued as AE7FB4E03E
+221 2.0.0 Bye
