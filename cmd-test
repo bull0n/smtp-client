@@ -1,9 +1,10 @@
 ===============
 ENVOIE D'EMAIL TEST
 ===============
-./smtp-client "lucas.bulloni@he-arc.ch" "Salut" content.txt "localhost" "lu.bulloni@gmail.com" 14020
-./smtp-client "lu.bulloni@gmail.com" "Salut" content.txt "smtprel.he-arc.ch" "lucas.bulloni@he-arc.ch"
-./smtp-client "lucas.bulloni@he-arc.ch" "Salut" content.txt "smtp.alphanet.ch" "schaefer@alphanet.ch"
+./smtp-client "lucas.bulloni@he-arc.ch" "Test" content.txt "localhost" "lu.bulloni@gmail.com" 14020
+./smtp-client "lu.bulloni@gmail.com" "Test" content.txt "smtprel.he-arc.ch" "lucas.bulloni@he-arc.ch"
+./smtp-client "lucas.bulloni@he-arc.ch" "Test" content.txt "smtp.alphanet.ch" "lucas.bulloni@he-arc.ch" 587
+./smtp-client "lucas.bulloni@he-arc.ch" "Test" content.txt "smtp.alphanet.ch" "schaefer@alphanet.ch" 587
 
 ===============
 SIMULATION SERVER

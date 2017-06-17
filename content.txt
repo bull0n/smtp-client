@@ -1,3 +1,1 @@
 Fichier de test pour l'envoie d'un email
-
-salut roger

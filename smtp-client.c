@@ -10,7 +10,6 @@
 #include <string.h>
 #include <netdb.h>
 #include <time.h>
-#include <regex.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -61,7 +60,7 @@ char manageError(const char serverError) {
     time_t curentTime;
     char* timeString;
     curentTime = time(NULL);
-    int waitingTime = 2;
+    int waitingTime = 16;
     // Convert to local time format.
     timeString = ctime(&curentTime);
     //french wikipedia says we have to wait 15-30mins before continuing, english says 25. We'll wait 30 to be sure min*sec*microseconds
@@ -88,7 +87,7 @@ int sendMail(char* from, char* to, char* subject, char* filename, char* mailServ
   //Infos to send to the server
   char* HELO = "INF16-BULLONIL";
   if ((f = tcp_connect(mailServer, portNum))) {
-
+    //traîté s'il y a un point au début de la ligne
     /*Start the sending email process*/
     // Number of the step
     // 0 = HELO
@@ -126,14 +125,14 @@ int sendMail(char* from, char* to, char* subject, char* filename, char* mailServ
         else if (step == 4){
           char* content;
           FILE * contentFile = fopen(filename, "r");
-          fseek (contentFile, 0, SEEK_END);
+          fseek(contentFile, 0, SEEK_END);
           long length = ftell (contentFile);
-          fseek (contentFile, 0, SEEK_SET);
+          fseek(contentFile, 0, SEEK_SET);
           content = malloc(length);
           if (content) {
             fread (content, 1, length, contentFile);
           }
-          fclose (contentFile);
+          fclose(contentFile);
           fprintf(f,"Subject: %s\r\nFrom: <%s>\r\nTo: %s\r\n\r\n%s\r\n\r\n.\n\r", subject, from, to, content);
           free(content);
           printf("%s", content);
